@@ -8,7 +8,7 @@ from BaiduSearch_Spider.body_path import *
 
 class BaiduspiderSpider(scrapy.Spider):
     name = 'newsspider'
-    # allowed_domains = ['http://news.baidu.com/']
+    allowed_domains = ['http://news.baidu.com/']
 
     def start_requests(self):
         keyword="中山大学"
