@@ -1,3 +1,4 @@
 import os
 if __name__=="__main__":
-    os.system("scrapy crawl searchspider")
+    os.system("scrapy crawl newsspider")
+    #os.system("scrapy crawl searchspider")

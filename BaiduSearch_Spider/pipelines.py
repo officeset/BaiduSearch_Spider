@@ -15,12 +15,7 @@ class BaidusearchSpiderPipeline(object):
 class Pipeline_ToCSV(object):
     def __init__(self):
         #csv文件的位置,无需事先创建
-        self.store_file = os.path.dirname(__file__) + '/data/baidu_{0}.csv'
-        ##打开(创建)文件
-        #self.file = open(self.store_file,'w',newline='',encoding='utf-8-sig') # 不带newline的话输出总会有一个空行 加入encoding='utf-8-sig'就不会乱码了
-        ##csv写法
-        #self.writer = csv.writer(self.file)
-
+        self.store_file = os.path.dirname(__file__) + '/{0}data/{1}.csv'
         self.cur_keyword=""
         
     def process_item(self,item,spider):
@@ -30,16 +25,25 @@ class Pipeline_ToCSV(object):
             return self.process_search_item(item,spider)
         
     def process_news_item(self,item,spider):
+        if item['keyword']!=self.cur_keyword:# 如果更换了关键词，就要打开另外一个文件中去读写
+            #打开(创建)文件
+            self.file = open((self.store_file).format("news",item['keyword']),'a',newline='',encoding='utf-8-sig') # 不带newline的话输出总会有一个空行 加入encoding='utf-8-sig'就不会乱码了
+            #csv写法
+            self.writer = csv.writer(self.file)
+            #记录当前榨取的关键词
+            self.cur_keyword=item['keyword']
+
         #判断字段值不为空再写入文件
         if item['title']!="" :
             # 组成元组：
             List=(item['title'],item['platform'],item['date'],item['time'],item['brief'],item['body'],item['link'])
             self.writer.writerow(List)
         return item
+
     def process_search_item(self,item,spider):
-        if item['keyword']!=cur_keyword:# 如果更换了关键词，就要打开另外一个文件中取读写
+        if item['keyword']!=self.cur_keyword:# 如果更换了关键词，就要打开另外一个文件中去读写
             #打开(创建)文件
-            self.file = open((self.store_file).format(item['keyword']),'a',newline='',encoding='utf-8-sig') # 不带newline的话输出总会有一个空行 加入encoding='utf-8-sig'就不会乱码了
+            self.file = open((self.store_file).format("search",item['keyword']),'a',newline='',encoding='utf-8-sig') # 不带newline的话输出总会有一个空行 加入encoding='utf-8-sig'就不会乱码了
             #csv写法
             self.writer = csv.writer(self.file)
             #记录当前榨取的关键词
@@ -52,6 +56,6 @@ class Pipeline_ToCSV(object):
             self.writer.writerow(List)
         return item
 
-    def close_spider(self,spider):
-        #关闭爬虫时顺便将文件保存退出
-        self.file.close()
+    #def close_spider(self,spider):
+    #    #关闭爬虫时顺便将文件保存退出
+    #    self.file.close()

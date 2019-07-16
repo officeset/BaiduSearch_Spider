@@ -3,23 +3,46 @@ import scrapy
 from BaiduSearch_Spider.items import BaidunewsSpiderItem
 
 from time import sleep
-from BaiduSearch_Spider.body_path import *
+from BaiduSearch_Spider.body_path import path_list
+
+import csv
+import os
+
+import urllib
 
 
 class BaiduspiderSpider(scrapy.Spider):
     name = 'newsspider'
-    allowed_domains = ['http://news.baidu.com/']
+    # allowed_domains = ['http://news.baidu.com/']
+
+    def __init__(self):
+        self.ReadKeyword() # 读取关键词
+
+    def ReadKeyword(self): # 设置要包含要搜索关键词的csv文件
+        #关键词csv文件的位置
+        filename = "高校学生自杀搜索关键词(1).csv"
+        path1 = os.path.dirname(__file__)# 获取当前文件所在文件夹
+        path2 = os.path.dirname(path1) + '\\keyword\\'+filename# 获取当前文件所在文件夹的父文件夹
+        #打开(创建)文件
+        file = open(path2,'r',newline='',encoding='utf-8-sig') # 不带newline的话输出总会有一个空行 加入encoding='utf-8-sig'就不会乱码了
+        #csv读取
+        reader = csv.reader(file) # 建立csv文件句柄
+        self.keywords=[]
+        for row in reader:
+            self.keywords.append(row)
+        self.keywords=self.keywords[1:]# 去掉第一项
 
     def start_requests(self):
-        keyword="中山大学"
-        begin_page = 0
-        end_page = 25
-        start_urls1 = "http://news.baidu.com/ns?word=中山大学&pn={0}&cl=2&ct=0&tn=newsdy&rn=10&ie=utf-8&bt=1514736000&et=1558195199"
-        start_urls2 = "https://news.baidu.com/ns?word=%E5%8F%8C%E9%B8%AD%E5%B1%B1%20%2B%E4%B8%AD%E5%B1%B1%E5%A4%A7%E5%AD%A6&pn={0}&cl=2&ct=0&tn=news&rn=10&ie=utf-8&bt=0&et=0"
-        for page in range(begin_page,end_page):# 一页链接数量由参数&rn=决定
-            U = start_urls1.format(page*10)  
-            # sleep(0.5)  #设置一个翻页的时间，太快了不好
-            yield scrapy.Request(url = U,meta = {'keyword':keyword},callback = self.parse,dont_filter=True)
+        for line in self.keywords:
+            line=(line[0]).split()
+            keyword="|".join(line)
+            begin_page = 0
+            end_page = 80
+            start_urls1 = "http://news.baidu.com/ns?word={0}&pn={1}&cl=2&ct=0&tn=newsdy&rn=10&ie=utf-8"
+            for page in range(begin_page,end_page):# 一页链接数量由参数&rn=决定
+                U = start_urls1.format(keyword,page*10)
+                yield scrapy.Request(url = U,meta = {'keyword':" ".join(line)},callback = self.parse,dont_filter=False)
+            sleep(5)  #设置一个时间间隔，太快了不好
     
     def parse(self,response):
         for section in response.xpath('//div[@class="result" and @id]'):
@@ -70,9 +93,7 @@ class BaiduspiderSpider(scrapy.Spider):
             if len(a)!=0: # 爬取正文数据 找到了就分析，否则继续寻找
                 b=a.xpath('string(.)').extract()
                 string="".join(b)
-                if item['keyword'] in string: # 爬取到了有用的正文就可以离开循环
+                if len(string)>0: # 爬取到了有用的正文就可以离开循环
                     break
-                else:
-                    string="" #否则清空正文字符串 继续循环查找
         item['body']=string.replace('\n',"").replace('\t',"").replace(" ","").replace("\r","") # 去除没用的关键字
         yield item 

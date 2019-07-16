@@ -8,11 +8,13 @@ from BaiduSearch_Spider.body_path import *
 import csv
 import os
 
+import urllib
+
 
 class BaiduspiderSpider(scrapy.Spider):
     name = 'searchspider'
     count=0
-    # allowed_domains = ['http://www.baidu.com/']
+    #allowed_domains = ['http://www.baidu.com/']
 
     def __init__(self, keyword=None, search=None, *args, **kwargs):
         super(BaiduspiderSpider, self).__init__(*args, **kwargs)
@@ -43,8 +45,8 @@ class BaiduspiderSpider(scrapy.Spider):
             start_urls1 = "https://www.baidu.com/s?wd={0}&pn={1}&rn=10"
             for page in range(begin_page,end_page):# 一页链接数量由参数&rn=决定
                 U = start_urls1.format(keyword,page*10)
-                yield scrapy.Request(url = U,meta = {'keyword':" ".join(line)},callback = self.parse,dont_filter=True)
-            sleep(10)  #设置一个时间间隔，太快了不好
+                yield scrapy.Request(url = U,meta = {'keyword':" ".join(line)},callback = self.parse,dont_filter=False)
+            sleep(5)  #设置一个时间间隔，太快了不好
 
     def parse(self,response):
         list1 = response.xpath('//div[@class="result-op c-container xpath-log"]')
@@ -55,8 +57,14 @@ class BaiduspiderSpider(scrapy.Spider):
             item['number']=self.count
             self.count+=1
             try:
+                # 获取到的链接是在百度网页上看的加密的重定位链接
                 info = section.xpath('.//a')[0]
                 item['link'] = info.xpath('@href').extract()[0]
+
+                ## 访问百度提供的链接并获取真实url 会降低一定爬取速率
+                #res=urllib.request.urlopen(item['link']) 
+                #realurl = res.geturl()
+                #item['link'] = realurl
             except:
                 item['link']=""
 
@@ -92,8 +100,14 @@ class BaiduspiderSpider(scrapy.Spider):
             self.count+=1
             item['keyword']=response.meta['keyword'] # 标注关键词
             try:
+                # 获取到的链接是在百度网页上看的加密的重定位链接
                 info = section.xpath('.//h3/a')[0]
                 item['link'] = info.xpath('@href').extract()[0]
+
+                ## 访问百度提供的链接并获取真实url 会降低一定爬取速率
+                #res=urllib.request.urlopen(item['link']) 
+                #realurl = res.geturl()
+                #item['link'] = realurl
             except:
                 item['link']=""
 
