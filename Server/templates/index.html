@@ -15,20 +15,27 @@
             <div class="layui-form-item">
                 <div class="layui-input-block">
                     <button class="layui-btn" lay-submit lay-filter="search"><i
-                            class="layui-icon">&#xe615;</i>立即榨取</button>
+                            class="layui-icon">&#xe615;</i>网页榨取</button>
+                    <button class="layui-btn" lay-submit lay-filter="news"><i
+                            class="layui-icon">&#xe615;</i>新闻榨取</button>
                     <button type="reset" class="layui-btn layui-btn-primary"><i
                             class="layui-icon">&#xe669;</i>重置</button>
                 </div>
             </div>
+            <blockquote class="layui-elem-quote">
+                Tips：多个关键词之间是“或”关系的话使用 (关键词1|关键词2|关键词3|关键词4) 这种形式即可
+            </blockquote>
         </form>
     </fieldset>
-    <div class="layui-progress layui-progress-big" lay-showpercent="true" lay-filter="loading" width="80%px" style="display:none">
+    <div class="layui-progress layui-progress-big" lay-showpercent="true" lay-filter="loading" width="80%px"
+        style="display:none">
         <div class="layui-progress-bar layui-bg-orange" lay-percent="0%"></div>
     </div>
     <div class='layui-anim layui-anim-up' style="display:none;">
         <fieldset class="layui-elem-field layui-field-title">
             <legend>结果</legend>
         </fieldset>
+        <input type="text" name="type" class="layui-input" style="display: none">
         <table class="layui-table" id="result" lay-filter="result"></table>
         <span></span>
     </div>
@@ -43,16 +50,16 @@
     layui.use(['form', 'table', 'element'], function () {
         var form = layui.form,
             table = layui.table,
-            element = layui.element;
-        $ = layui.jquery;
+            element = layui.element,
+            $ = layui.jquery;
         form.render();
 
-        function reload(keyword) {
+        function reload_search(keyword) {
             tableIns = table.render({
                 elem: '#result',
                 height: 'full',
                 title: '查询结果',
-                url: 'api/spider',
+                url: 'api/search_spider',
                 id: 'result',
                 method: 'GET',
                 toolbar: '#toolbar',
@@ -76,13 +83,46 @@
             });
         }
 
+        function reload_news(keyword) {
+            tableIns = table.render({
+                elem: '#result',
+                height: 'full',
+                title: '查询结果',
+                url: 'api/news_spider',
+                id: 'result',
+                method: 'GET',
+                toolbar: '#toolbar',
+                page: false,
+                where: keyword,
+                cols: [[
+                    {
+                        field: 'title', title: '标题', sort: true, templet: d => {
+                            return '<a href="' + d.link + '" class="layui-table-link" target="_blank">' + d.title + '</a>'
+                        }
+                    },
+                    { field: 'body', title: '正文', sort: true },
+                    { field: 'brief', title: '简介', sort: true },
+                    { field: 'date', title: '日期', sort: true },
+                    { field: 'time', title: '时间', sort: true },
+                    { field: 'platform', title: '平台', sort: true },
+                ]],
+                done: function (res, curr, count) {
+                    if (res.code == 1) {
+                        layer.msg(res["msg"]);
+                        return false;
+                    }
+                }
+            });
+        }
+
         form.on("submit(search)", function (data) {
             data = data.field;
             $('.layui-progress').show();
             $('#result').parent().hide();
             console.log(data);
+            $("input[name='type']").val("search");
             // 加载结果
-            reload(data)
+            reload_search(data)
             // 进度条效果
             var n = 0, timer = setInterval(function () {
                 n = n + Math.random() * 10 | 0;
@@ -96,6 +136,28 @@
             return false;
         });
 
+        form.on("submit(news)", function (data) {
+            data = data.field;
+            $('.layui-progress').show();
+            $('#result').parent().hide();
+            console.log(data);
+            $("input[name='type']").val("news");
+            // 加载结果
+            reload_news(data)
+            // 进度条效果
+            var n = 0, timer = setInterval(function () {
+                n = n + Math.random() * 10 | 0;
+                if (n > 100) {
+                    n = 100;
+                    $('#result').parent().show();
+                    clearInterval(timer);
+                }
+                element.progress('loading', n + '%');
+            }, 300 + Math.random() * 1000);
+            return false;
+        });
+
+
         //工具栏事件
         table.on('toolbar(result)', function (obj) {
             var checkStatus = table.checkStatus(obj.config.id);
@@ -103,7 +165,8 @@
 
                 case 'download':
                     layer.msg('下载中');
-                    window.open('/api/download');
+                    var typ = $("input[name='type']").val();
+                    window.open('/api/download?type=' + typ);
                     break;
                 case 'delete':
                     break;
