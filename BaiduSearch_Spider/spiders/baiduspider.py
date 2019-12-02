@@ -24,7 +24,7 @@ class BaiduspiderSpider(scrapy.Spider):
 
     def ReadKeyword(self): # 设置要包含要搜索关键词的csv文件
         #关键词csv文件的位置
-        filename = "keywords_test.csv"
+        filename = "keywords.csv"
         path1 = os.path.dirname(__file__)# 获取当前文件所在文件夹
         path2 = os.path.dirname(path1) + '\\keyword\\'+filename# 获取当前文件所在文件夹的父文件夹
         #打开(创建)文件
@@ -46,12 +46,12 @@ class BaiduspiderSpider(scrapy.Spider):
                 U = start_urls.format(keyword)
                 yield scrapy.Request(url = U,meta = {'keyword':" ".join(line)},callback = self.parse,dont_filter=True)
 
-                sleep(3)  #设置一个时间间隔，太快了不好
+                sleep(0.1)  #设置一个时间间隔，太快了不好
         else:
             start_urls = "http://www.baidu.com/s?rtt=1&word={0}&rn=10&bsst=1&cl=2&tn=news&rsv_dl=ns_pc"
             U = start_urls.format(self.keyword)
             yield scrapy.Request(url = U,meta = {'keyword':self.keyword.replace("|"," ")},callback = self.parse,dont_filter=True)
-            sleep(3)  #设置一个时间间隔，太快了不好
+            sleep(0.1)  #设置一个时间间隔，太快了不好
 
     
     def parse(self,response):

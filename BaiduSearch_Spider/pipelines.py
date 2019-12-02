@@ -85,16 +85,16 @@ class Pipeline_ToCSV(object):
         if item['title']!="" :
             # 组成元组：
             # 将加密的link进行解密
-            if item['link'] != "":
-                try:
-                    reallink = urllib.request.urlopen(item['link'], timeout = 1).geturl()
-                    item['link'] = reallink
-                except:
-                    pass
+            #if item['link'] != "":
+                #try:
+                #    reallink = urllib.request.urlopen(item['link'], timeout = 1).geturl()
+                #    item['link'] = reallink
+                #except:
+                #    pass
             List=(item['title'],item['time'],item['brief'],item['link'])
             self.writer.writerow(List)
         return item
 
-    def close_spider(self,spider):
-        #关闭爬虫时顺便将文件保存退出
-        self.file.close()
+    #def close_spider(self,spider):
+    #    #关闭爬虫时顺便将文件保存退出
+    #    self.file.close()

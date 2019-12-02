@@ -4,6 +4,7 @@ from BaiduSearch_Spider.items import BaidusearchSpiderItem
 
 from time import sleep
 from BaiduSearch_Spider.body_path import *
+import traceback
 
 import csv
 import os
@@ -12,7 +13,7 @@ import os
 class BaiduspiderSpider(scrapy.Spider):
     name = 'searchspider'
     count=0
-    # allowed_domains = ['http://news.baidu.com/']
+    start_urls = ['http://baidu.com/']
 
     def __init__(self, keyword=None, search=None, *args, **kwargs):
         super(BaiduspiderSpider, self).__init__(*args, **kwargs)
@@ -50,13 +51,13 @@ class BaiduspiderSpider(scrapy.Spider):
                     yield scrapy.Request(url = U,meta = {'keyword':" ".join(line)},callback = self.parse,dont_filter=True)
                 sleep(1)  #设置一个时间间隔，太快了不好
         else:
-            begin_page = 0
-            end_page = 76
-            start_urls1 = "http://www.baidu.com/s?wd={})&pn={}&rn=10&ie=utf-8"
-            for page in range(begin_page,end_page):# 一页链接数量由参数&rn=决定
-                U = start_urls1.format(self.search,page*10)  
-                # sleep(0.5)  #设置一个翻页的时间，太快了不好
-                yield scrapy.Request(url = U,meta = {'keyword':self.keyword.replace("|"," ")},callback = self.parse,dont_filter=True)
+            #begin_page = 0
+            #end_page = 76
+            start_urls1 = "http://www.baidu.com/s?wd={}&pn={}&rn=10&ie=utf-8"
+            #for page in range(begin_page,end_page):# 一页链接数量由参数&rn=决定
+            U = start_urls1.format(self.keyword,0)  
+            sleep(0.5)  #设置一个翻页的时间，太快了不好
+            yield scrapy.Request(url = U,meta = {'keyword':self.keyword.replace("|"," ")},callback = self.parse,dont_filter=True)
 
 
 
@@ -68,6 +69,10 @@ class BaiduspiderSpider(scrapy.Spider):
 
         list1 = response.xpath('//div[@class="result-op c-container xpath-log"]')
         list2 = response.xpath('//div[@class="result c-container "]')
+        #print(list1)
+        #print(list2)
+
+
         for section in list2:
             item = BaidusearchSpiderItem()
             item['keyword']=response.meta['keyword'] # 标注关键词
@@ -77,12 +82,14 @@ class BaiduspiderSpider(scrapy.Spider):
                 info = section.xpath('.//a')[0]
                 item['link'] = info.xpath('@href').extract()[0]
             except:
+                #traceback.print_exc()
                 item['link']=""
 
             try:
                 res_title=section.xpath('.//h3/a')
                 item['title']=(res_title[0].xpath('string(.)').extract_first()).strip('\n\t \'')
             except:
+                #traceback.print_exc()
                 item['title']=""
  
             try:
@@ -100,12 +107,14 @@ class BaiduspiderSpider(scrapy.Spider):
                     item['time'] = ""
                     item['brief'] = ("".join(List[:])).lstrip("= -")
             except:
+                #traceback.print_exc()
                 item['time']=""
                 item['brief']=""
             yield item
             # yield scrapy.Request(url = item['link'],meta = {'item':item},callback = self.parse_next,dont_filter=True)
 
         for section in list1:
+            
             item = BaidusearchSpiderItem()
             item['number']=self.count
             self.count+=1
@@ -114,12 +123,14 @@ class BaiduspiderSpider(scrapy.Spider):
                 info = section.xpath('.//h3/a')[0]
                 item['link'] = info.xpath('@href').extract()[0]
             except:
+                #traceback.print_exc()
                 item['link']=""
 
             try:
                 res_title=section.xpath('.//h3/a')
                 item['title']=(res_title[0].xpath('string(.)').extract_first()).strip('\n\t \'')
             except:
+                #traceback.print_exc()
                 item['title']=""
             try:
                 b=section.xpath('.//div[@class="c-row"]')
@@ -130,16 +141,23 @@ class BaiduspiderSpider(scrapy.Spider):
                 item['time']="" # 这种讯息一般没有时间
                 item['brief'] = ("".join(List[:])).lstrip("= ")
             except:
+                #traceback.print_exc()
                 item['time']=""
                 item['brief']=""
             yield item
 
-        # # 解析出下一页的url继续请求
-        # next_pageURL = response.xpath('//div[@id="page"]/a[@class="n"]') 
-        # # 因为 上一页和下一页的标签都是class=n 如果页面只有一个 class=n 出现要单独讨论，否则可能死循环
-        # if len(next_pageURL)==0 or(len(next_pageURL)==1 and "上一页" in next_pageURL[0].xpath('./text()').extract()[0]):
-        #     pass
-        # else:
-        #     next_pageURL = next_pageURL[-1].xpath('@href').extract()[0]
-        #     # sleep(0.02) # 放慢翻页请求速度，否则可能爬下来一个空的html
-        #     yield scrapy.Request(url = "http://www.baidu.com"+next_pageURL,meta = {'keyword':response.meta['keyword']},callback = self.parse,dont_filter=True)
+                # 解析出下一页的url继续请求
+        #print("\n\n\n")
+        #print(response.body)
+        #print("\n\n\n")
+        next_pageURL = response.xpath('//div[@id="page"]/a[@class="n"]')
+        #print(next_pageURL)
+        # 因为 上一页和下一页的标签都是class=n 如果页面只有一个 class=n 出现要单独讨论，否则可能死循环
+        if len(next_pageURL)==0 or(len(next_pageURL)==1 and "上一页" in next_pageURL[0].xpath('./text()').extract()[0]):
+            #print(next_pageURL[0].xpath('./text()').extract()[0])
+            pass
+        else:
+            next_pageURL = next_pageURL[-1].xpath('@href').extract()[0]
+            # sleep(0.02) # 放慢翻页请求速度，否则可能爬下来一个空的html
+            #print("\n\n\n翻页中     http://www.baidu.com"+next_pageURL+"\n\n\n")
+            yield scrapy.Request(url = "http://www.baidu.com"+next_pageURL,meta = {'keyword':response.meta['keyword']},callback = self.parse,dont_filter=True)
